@@ -123,7 +123,6 @@ public class Analysizer {
     {
         analyse_expr_3();
         boolean isAdding;
-        Token t=currentToken();
         while(currentToken().tokenType==TokenType.PLUS|| currentToken().tokenType==TokenType.MINUS
         )
         {
@@ -154,7 +153,6 @@ public class Analysizer {
     {
         analyse_expr_4();
         boolean isMulting;
-        Token token =currentToken();
         while(currentToken().tokenType==TokenType.MUL||
                 currentToken().tokenType==TokenType.DIV
         )
@@ -453,7 +451,7 @@ public class Analysizer {
         functionList.addVariable(v);
         if(!global)
             functionList.top().local_slot++;
-        pushVarToStack(variable);
+        pushVarToStack(v);
         expect(TokenType.ASSIGN);
         analyseExpr();
         // 汇编和栈操作应该是同步的
@@ -807,9 +805,6 @@ public class Analysizer {
         return res;
     }
 
-    public static void main(String[] args) {
-        ArrayList<Byte> b = Instruction.get_byte_array_by_int(-19);
-    }
     public void ReturnCheck()
     {
         int size = functionList.top().instructions.size();
