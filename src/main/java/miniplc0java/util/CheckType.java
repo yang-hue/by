@@ -1,6 +1,6 @@
 package miniplc0java.util;
 
-public class CheckCharType {
+public class CheckType {
     public static boolean isInt(char a) {
         return a >= '0' && a <= '9';
     }

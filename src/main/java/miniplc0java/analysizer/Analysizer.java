@@ -6,9 +6,7 @@ import org.checkerframework.checker.units.qual.A;
 import javax.print.DocFlavor;
 import java.awt.print.PrinterGraphics;
 import java.io.*;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Set;
+import java.util.*;
 
 public class Analysizer {
     Tokenizer tokenizer;
@@ -33,8 +31,7 @@ public class Analysizer {
     {
         return pos+2<=tokenizer.TokenList.size()-1?tokenizer.TokenList.get(pos+2):null;
     }
-    // 把变量的地址放在栈上 ，地址是4个字节
-    public void push_variable_address(Variable variable) {
+    public void pushVarToStack(Variable variable) {
         if (variable.isGlobal) {
             functionList.add_instruction("globa",Instruction.get_byte_array_by_int(variable.offset));
             stack.push(SlotType.ADDR);
@@ -89,13 +86,6 @@ public class Analysizer {
             }
         }
     }
-    // expr 删除左递归的表达
-    // expr -> expr_1 { = expr_1}
-    // expr_1 -> expr_2 { sign_1 expr_2}   sign_1 -> > < >= <= == !=
-    // expr_2 -> expr_3 { sign_2 expr_3}   sign_2 -> + -
-    // expr_3 -> expr_4 { sign_3 expr_4}   sign_3 -> * /
-    // expr_4 -> expr_5 { as ty}
-    // expr_5 -> -expr_5 | Ident(expr,expr...) |(expr)| 15| 15.6E4 | "sadfasd"
     public void analyse_expr_1()
     {// 比较表达式的值只出现在if/while语句中
         analyse_expr_2();
@@ -321,7 +311,7 @@ public class Analysizer {
             else  // 引用符号表的参数，查询是否存在，并把他的地址放在栈上,load
             {
                 Variable variable = symbolTable.getVariableByName(currentToken().value.toString());
-                push_variable_address(variable);
+                pushVarToStack(variable);
                 if(nextToken().tokenType!=TokenType.ASSIGN)// 不是赋值语句
                 {
                     functionList.add_instruction("load.64");
@@ -479,7 +469,7 @@ public class Analysizer {
        if(!global)
            functionList.top().local_slot++;
        // 现在应该把这个const的地址放在栈顶上，push，store.64
-        push_variable_address(v);
+        pushVarToStack(v);
         expect(TokenType.ASSIGN);
         analyseExpr();
         // 汇编和栈操作应该是同步的
@@ -504,7 +494,7 @@ public class Analysizer {
             functionList.top().local_slot++;
         if(currentToken().tokenType==TokenType.ASSIGN)
         {
-            push_variable_address(v);
+            pushVarToStack(v);
             GoNext();
             analyseExpr();
             // 汇编和栈操作应该是同步的
