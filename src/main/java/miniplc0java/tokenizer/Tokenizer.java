@@ -400,4 +400,14 @@ public class Tokenizer {
         }
 
     }
+
+    public static void main(String[] args) throws Error {
+        Tokenizer t= new Tokenizer("D:\\C0_new\\src\\in.txt");
+        t.TokenizerInit();
+//        for(int i=0;i<t.TokenList.size();i++)
+//        {
+//            System.out.println(t.TokenList.get(i));
+//        }
+        t.print_tokens();
+    }
 }
