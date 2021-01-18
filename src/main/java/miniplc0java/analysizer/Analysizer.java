@@ -73,18 +73,6 @@ public class Analysizer {
         stream = new FileOutputStream(out);
         analyseProgram();
         print_out();
-        FileInputStream f = new FileInputStream(new File(out));
-        byte[] a = f.readAllBytes();
-        int time = 0;
-        for(int i=0;i<a.length;i++)
-        {
-            time++;
-            System.out.print(work(a[i])+" ");
-            if(time==16) {
-                System.out.println("");
-                time = 0;
-            }
-        }
     }
     public void analyse_expr_1()
     {// 比较表达式的值只出现在if/while语句中
@@ -842,52 +830,6 @@ public class Analysizer {
             System.out.println(" ");
 
         }
-    }
-    public static String work(byte a)
-    {
-        int num = ((int)a+256)%256;
-        int first = num/16;
-        int second = num-first*16;
-        String s1="",s2="";
-        if(first<=9)
-        {
-            s1 = new String(String.valueOf(first));
-        }
-        else switch (first)
-        {
-            case 10:s1="A";
-                break;
-            case 11:s1="B";
-                break;
-            case 12:s1="C";
-                break;
-            case 13:s1="D";
-                break;
-            case 14:s1="E";
-                break;
-            case 15:s1="F";
-                break;
-        }
-        if(second<=9)
-        {
-            s2 = new String(String.valueOf(second));
-        }
-        else switch (second)
-        {
-            case 10:s2="A";
-                break;
-            case 11:s2="B";
-                break;
-            case 12:s2="C";
-                break;
-            case 13:s2="D";
-                break;
-            case 14:s2="E";
-                break;
-            case 15:s2="F";
-                break;
-        }
-        return  s1+s2;
     }
     public static byte[] toByteArray(ArrayList<Byte> bytes)
     {

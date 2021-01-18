@@ -1,7 +1,9 @@
 package miniplc0java.tokenizer;
-import java.util.*;
+import java.util.ArrayList;
 
-import miniplc0java.util.*;
+import miniplc0java.util.Caculate;
+import miniplc0java.util.CheckCharType;
+import miniplc0java.util.Pos;
 
 public class Tokenizer {
     public ArrayList<Token> TokenList= new ArrayList<>();
@@ -15,15 +17,15 @@ public class Tokenizer {
     }
     public Token NextToken() throws Error
     {
-        skipSpaceCharacters();
         if (readFile.isEOF()) {
             return new Token(TokenType.EOF, "", readFile.NowPos,readFile.NowPos);
         }
-        if(CheckType.isAlpha(readFile.GetNowChar())||readFile.GetNowChar()=='_')
+        skipSpaceCharacters();
+        if(CheckCharType.isAlpha(readFile.GetNowChar())||readFile.GetNowChar()=='_')
         {
             return LexIdentOrKeyword();
         }
-        else if (CheckType.isInt(readFile.GetNowChar()))
+        else if (CheckCharType.isInt(readFile.GetNowChar()))
         {
             return LexIntOrDouble();
         }
@@ -31,15 +33,14 @@ public class Tokenizer {
     }
     public Token LexIdentOrKeyword() throws Error
     {
+        //
         try{
             Pos startPos = readFile.NowPos;
             StringBuilder sb = new StringBuilder();
-            char a=readFile.GetNowChar();
-            while((a>='a'&&a<='z')||(a>='A'&&a<='Z')||(a>='0'&&a<='9')||a=='_')
+            while(CheckCharType.isAlpha(readFile.GetNowChar())||CheckCharType.isInt(readFile.GetNowChar())||readFile.GetNowChar()=='_')
             {
-                sb.append(a);
+                sb.append(readFile.GetNowChar());
                 readFile.GoNext();
-                a=readFile.GetNowChar();
             }
             Pos endPos = readFile.NowPos;
             String strIn = sb.toString();
@@ -69,22 +70,94 @@ public class Tokenizer {
             }
         }catch (Exception E)
         {
-            throw new Error("error!");
+            throw new Error("failed while tokenizers:location--> row:"+readFile.NowPos.row+"col:"+readFile.NowPos.col);
         }
     }
-    public Token LexIntOrDouble() throws Error
+    public Token LexIntOrDouble() throws Error //1.56e+6
     {
         try{
             Pos startPos = readFile.NowPos;
             Pos endPos;
             StringBuilder IntegralPart = new StringBuilder();
-            while(CheckType.isInt(readFile.GetNowChar()))
+            while(CheckCharType.isInt(readFile.GetNowChar()))
             {
                 IntegralPart.append(readFile.GetNowChar());
                 readFile.GoNext();
             }
-            endPos = readFile.NowPos;
-            return new Token(TokenType.UINT_LITERAL,Long.valueOf(IntegralPart.toString()),startPos,endPos);
+            if(readFile.GetNowChar()!='.')
+                {
+                    endPos = readFile.NowPos;
+                    return new Token(TokenType.UINT_LITERAL,Long.valueOf(IntegralPart.toString()),startPos,endPos);
+                }
+            else {
+                if(CheckCharType.isInt(readFile.GetNextChar()))
+                {
+                    readFile.GoNext();
+                    StringBuilder FractionalPart = new StringBuilder();
+                    while(CheckCharType.isInt(readFile.GetNowChar()))
+                    {
+                        FractionalPart.append(readFile.GetNowChar());
+                        readFile.GoNext();
+                    }
+                    if(readFile.GetNowChar()=='e'||readFile.GetNowChar()=='E')
+                    {
+                        if(CheckCharType.isInt(readFile.GetNextChar()))// 1.56e45
+                        {
+                            readFile.GoNext();
+                            StringBuilder ExponentPart = new StringBuilder();
+                            while(CheckCharType.isInt(readFile.GetNowChar()))
+                            {
+                                ExponentPart.append(readFile.GetNowChar());
+                                readFile.GoNext();
+                            }
+                            endPos = readFile.NowPos;
+                            return new Token(TokenType.DOUBLE_LITERAL, Caculate.ScienceCoutToDouble(IntegralPart,FractionalPart,ExponentPart
+                            ),startPos,endPos);
+
+                        }
+                        else if (readFile.GetNextChar()=='+'||readFile.GetNextChar()=='-')
+                        {
+                            if(CheckCharType.isInt(readFile.GetNextNextChar()))
+                            {
+                                readFile.GoNext();
+                                StringBuilder ExponentPart = new StringBuilder();
+                                ExponentPart.append(readFile.GetNowChar());
+                                readFile.GoNext();
+                                while(CheckCharType.isInt(readFile.GetNowChar()))
+                                    {
+                                        ExponentPart.append(readFile.GetNowChar());
+                                        readFile.GoNext();
+                                    }
+                                endPos = readFile.NowPos;
+                                return new Token(TokenType.DOUBLE_LITERAL, Caculate.ScienceCoutToDouble(IntegralPart,FractionalPart,ExponentPart
+                                ),startPos,endPos);
+                            }
+                            else
+                                {
+                                    endPos = readFile.NowPos;
+                                    return new Token(TokenType.DOUBLE_LITERAL, Caculate.ScienceCoutToDouble(IntegralPart,FractionalPart,new StringBuilder("0")
+                                    ),startPos,endPos);
+
+                                }
+
+                        }
+                        else {
+                            endPos = readFile.NowPos;
+                            return new Token(TokenType.DOUBLE_LITERAL, Caculate.ScienceCoutToDouble(IntegralPart,FractionalPart,new StringBuilder("0")
+                            ),startPos,endPos);
+                        }
+                    }
+                    else {
+                        endPos = readFile.NowPos;
+                        return new Token(TokenType.DOUBLE_LITERAL, Caculate.ScienceCoutToDouble(IntegralPart,FractionalPart,new StringBuilder("0")
+                        ),startPos,endPos);
+
+                    }
+                }else {
+                    throw new Error("failed while tokenizers:location--> row:"+readFile.NowPos.row+"col:"+readFile.NowPos.col);
+                }
+
+            }
         }catch (Exception E)
         {
             throw new Error("failed while tokenizers:location--> row:"+readFile.NowPos.row+"col:"+readFile.NowPos.col);
@@ -134,7 +207,7 @@ public class Tokenizer {
                     readFile.GoNext();
                     endPos = readFile.NowPos;
                     return new Token(TokenType.SEMICOLON,beginSign,startPos,endPos);
-                case '-':
+                case '-': // - or ->
                     readFile.GoNext();
                     if(readFile.GetNowChar()=='>')
                     {
@@ -147,7 +220,7 @@ public class Tokenizer {
                         endPos = readFile.NowPos;
                         return new Token(TokenType.MINUS,beginSign,startPos,endPos);
                     }
-                case '<':
+                case '<':// < or <=
                     readFile.GoNext();
                     if(readFile.GetNowChar()=='=')
                     {
@@ -160,7 +233,7 @@ public class Tokenizer {
                         endPos = readFile.NowPos;
                         return new Token(TokenType.LT,beginSign,startPos,endPos);
                     }
-                case '>':
+                case '>':// > or >=
                     readFile.GoNext();
                     if(readFile.GetNowChar()=='=')
                     {
@@ -173,7 +246,7 @@ public class Tokenizer {
                         endPos = readFile.NowPos;
                         return new Token(TokenType.GT,beginSign,startPos,endPos);
                     }
-                case '!':
+                case '!':// !=
                     readFile.GoNext();
                     if(readFile.GetNowChar()=='=')
                     {
@@ -182,7 +255,7 @@ public class Tokenizer {
                         return new Token(TokenType.NEQ, "!=",startPos,endPos);
                     }
                     else    throw new Error("failed while tokenizers:location--> row:"+readFile.NowPos.row+"col:"+readFile.NowPos.col);
-                case '=':
+                case '=':// = or ==
                     readFile.GoNext();
                     if(readFile.GetNowChar()=='=')
                     {
@@ -195,11 +268,11 @@ public class Tokenizer {
                         endPos = readFile.NowPos;
                         return new Token(TokenType.ASSIGN,beginSign,startPos,endPos);
                     }
-                case '"':
+                case '"':// 字符串字面量
                     readFile.GoNext();
                     char getChar = readFile.GetNowChar();
                     StringBuilder sb = new StringBuilder();
-                    while (CheckType.isStringLiteralChar(getChar))
+                    while (CheckCharType.isStringLiteralChar(getChar))
                     {
                         if(getChar=='\\'&&(readFile.GetNextChar()=='n'||readFile.GetNextChar()=='r'||readFile.GetNextChar()=='t'
                                 ||readFile.GetNextChar()=='\''||readFile.GetNextChar()=='\"'||readFile.GetNextChar()=='\\'))
@@ -242,7 +315,7 @@ public class Tokenizer {
                     readFile.GoNext();
                     char getChar0 = readFile.GetNowChar();
                     long value = 0;
-                    if (CheckType.isCharLiteralChar(getChar0))
+                    if (CheckCharType.isCharLiteralChar(getChar0))
                     {
                         if(getChar0=='\\'&&(readFile.GetNextChar()=='n'||readFile.GetNextChar()=='r'||readFile.GetNextChar()=='t'
                                 ||readFile.GetNextChar()=='\''||readFile.GetNextChar()=='\"'||readFile.GetNextChar()=='\\'))
@@ -308,13 +381,6 @@ public class Tokenizer {
             if(tk==null)return;
             else TokenList.add(tk);
             if(tk.tokenType==TokenType.EOF)return;
-        }
-
-    }
-    public void print_tokens(){
-        for(int i=0;i<TokenList.size();i++)
-        {
-            System.out.println(TokenList.get(i));
         }
 
     }
