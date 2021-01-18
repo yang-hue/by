@@ -31,21 +31,6 @@ public class Analysizer {
     {
         return pos+2<=tokenizer.TokenList.size()-1?tokenizer.TokenList.get(pos+2):null;
     }
-    public void pushVarToStack(Variable variable) {
-        if (variable.isGlobal) {
-            functionList.add_instruction("globa",Instruction.get_byte_array_by_int(variable.offset));
-            stack.push(SlotType.ADDR);
-        }
-        else if(variable.isParam)
-        {
-            functionList.add_instruction("arga",Instruction.get_byte_array_by_int(variable.offset));
-            stack.push(SlotType.ADDR);
-
-        }else {
-            functionList.add_instruction("loca",Instruction.get_byte_array_by_int(variable.offset));
-            stack.push(SlotType.ADDR);
-        }
-    }
     public  ArrayList<Integer> whileStartIndexList = new ArrayList<>();
     public Token expect(TokenType tt)
     {
@@ -465,17 +450,17 @@ public class Analysizer {
         functionList.addVariable(v);
         if(!global)
             functionList.top().local_slot++;
-        if (variable.isGlobal) {
-            functionList.add_instruction("globa",Instruction.get_byte_array_by_int(variable.offset));
+        if (v.isGlobal) {
+            functionList.add_instruction("globa",Instruction.get_byte_array_by_int(v.offset));
             stack.push(SlotType.ADDR);
         }
-        else if(variable.isParam)
+        else if(v.isParam)
         {
-            functionList.add_instruction("arga",Instruction.get_byte_array_by_int(variable.offset));
+            functionList.add_instruction("arga",Instruction.get_byte_array_by_int(v.offset));
             stack.push(SlotType.ADDR);
 
         }else {
-            functionList.add_instruction("loca",Instruction.get_byte_array_by_int(variable.offset));
+            functionList.add_instruction("loca",Instruction.get_byte_array_by_int(v.offset));
             stack.push(SlotType.ADDR);
         }
         expect(TokenType.ASSIGN);
@@ -502,7 +487,19 @@ public class Analysizer {
             functionList.top().local_slot++;
         if(currentToken().tokenType==TokenType.ASSIGN)
         {
-            pushVarToStack(v);
+            if (v.isGlobal) {
+                functionList.add_instruction("globa",Instruction.get_byte_array_by_int(v.offset));
+                stack.push(SlotType.ADDR);
+            }
+            else if(v.isParam)
+            {
+                functionList.add_instruction("arga",Instruction.get_byte_array_by_int(v.offset));
+                stack.push(SlotType.ADDR);
+
+            }else {
+                functionList.add_instruction("loca",Instruction.get_byte_array_by_int(v.offset));
+                stack.push(SlotType.ADDR);
+            }
             next();
             analyseExpr();
             // 汇编和栈操作应该是同步的
