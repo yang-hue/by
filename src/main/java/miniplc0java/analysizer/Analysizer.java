@@ -592,8 +592,67 @@ public class Analysizer {
             functionList.add_instruction("stackalloc",Instruction.get_byte_array_by_int(1));
         }
         //不是void函数返回值检查
-        if(functionList.top().type!=VariableType.VOID)
-        ReturnCheck();
+        if(functionList.top().type!=VariableType.VOID){
+            int size = functionList.top().instructions.size();
+            ArrayList<Instruction> insList = functionList.top().instructions;
+            ArrayList<Integer> trans = new ArrayList<>();
+            ArrayList<Integer> destinations = new ArrayList<>();
+            ArrayList<Integer> inners = new ArrayList<>();
+            inners.add(0);
+            for (int i=0;i<size;i++)
+            {
+                Instruction instruction = insList.get(i);
+                if(instruction.instruction_name.contains("br"))
+                {
+                    trans.add(i);
+                    int det = (int)Instruction.get_num_by_byte_array(instruction.instruction_num);
+                    System.out.println(det);
+                    int destination = i+1+det;
+                    destinations.add(destination);
+                }
+            }
+            System.out.println(trans);
+            System.out.println(destinations);
+            for(int i=0;i<trans.size();i++)
+            {
+                if(!inners.contains(trans.get(i)+1))
+                inners.add(trans.get(i)+1);//跳转的下一句
+            }
+            for(int i=0;i<destinations.size();i++)
+            {
+                if(!inners.contains(destinations.get(i)))
+                inners.add(destinations.get(i));//直接跳转的入口
+            }
+            Collections.sort(inners);
+            System.out.println(inners);
+            if(inners.size()==1&&functionList.top().return_point==0)
+                throw new Error("");
+            ArrayList<BasicBlock> BasicBlockList = new ArrayList<>();
+            for(int i=0;i<inners.size();i++)
+            {
+                BasicBlock basicBlock = new BasicBlock();
+                int dest = i!=inners.size()-1? inners.get(i+1):size;
+                for(int j=inners.get(i);j<dest;j++)
+                {
+                    basicBlock.phaseIndexs.add(j);
+                    if(functionList.top().instructions.get(j).instruction_name.equals("ret"))
+                        basicBlock.hasReturn = true;
+                }
+                if(i!=inners.size()-1)
+                        {
+                    basicBlock.jumpTo.add(i+1);
+                    if(functionList.top().instructions.get(dest-1).instruction_name.contains("br"))
+                    {
+                        int to = (int)(dest+Instruction.get_num_by_byte_array(functionList.top().instructions.get(dest-1).instruction_num));
+                        to = inners.indexOf(to);
+                        basicBlock.jumpTo.add(to);
+                    }
+                        }
+                BasicBlockList.add(basicBlock);
+            }
+            ArrayList<Integer> signed = new ArrayList<>();
+            BasicBlockReturnCheck(BasicBlockList,0,signed);
+        }
     }
     public void analyse_stmt()//语句
     {
@@ -837,68 +896,6 @@ public class Analysizer {
         ArrayList<Byte> b = Instruction.get_byte_array_by_int(-19);
 
         System.out.println((int)Instruction.get_num_by_byte_array(b));
-    }
-    public void ReturnCheck()
-    {
-        int size = functionList.top().instructions.size();
-        ArrayList<Instruction> insList = functionList.top().instructions;
-        ArrayList<Integer> trans = new ArrayList<>();
-        ArrayList<Integer> destinations = new ArrayList<>();
-        ArrayList<Integer> inners = new ArrayList<>();
-        inners.add(0);
-        for (int i=0;i<size;i++)
-        {
-            Instruction instruction = insList.get(i);
-            if(instruction.instruction_name.contains("br"))
-            {
-                trans.add(i);
-                int det = (int)Instruction.get_num_by_byte_array(instruction.instruction_num);
-                System.out.println(det);
-                int destination = i+1+det;
-                destinations.add(destination);
-            }
-        }
-        System.out.println(trans);
-        System.out.println(destinations);
-        for(int i=0;i<trans.size();i++)
-        {
-            if(!inners.contains(trans.get(i)+1))
-            inners.add(trans.get(i)+1);//跳转的下一句
-        }
-        for(int i=0;i<destinations.size();i++)
-        {
-            if(!inners.contains(destinations.get(i)))
-            inners.add(destinations.get(i));//直接跳转的入口
-        }
-        Collections.sort(inners);
-        System.out.println(inners);
-        if(inners.size()==1&&functionList.top().return_point==0)
-            throw new Error("");
-        ArrayList<BasicBlock> BasicBlockList = new ArrayList<>();
-        for(int i=0;i<inners.size();i++)
-        {
-            BasicBlock basicBlock = new BasicBlock();
-            int dest = i!=inners.size()-1? inners.get(i+1):size;
-            for(int j=inners.get(i);j<dest;j++)
-            {
-                basicBlock.phaseIndexs.add(j);
-                if(functionList.top().instructions.get(j).instruction_name.equals("ret"))
-                    basicBlock.hasReturn = true;
-            }
-            if(i!=inners.size()-1)
-                    {
-                basicBlock.jumpTo.add(i+1);
-                if(functionList.top().instructions.get(dest-1).instruction_name.contains("br"))
-                {
-                    int to = (int)(dest+Instruction.get_num_by_byte_array(functionList.top().instructions.get(dest-1).instruction_num));
-                    to = inners.indexOf(to);
-                    basicBlock.jumpTo.add(to);
-                }
-                    }
-            BasicBlockList.add(basicBlock);
-        }
-        ArrayList<Integer> signed = new ArrayList<>();
-        BasicBlockReturnCheck(BasicBlockList,0,signed);
     }
     public void BasicBlockReturnCheck(ArrayList<BasicBlock> basicBlockList,int startIndex,ArrayList<Integer> signed)
     {
