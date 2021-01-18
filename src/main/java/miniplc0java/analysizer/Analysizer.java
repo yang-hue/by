@@ -66,6 +66,7 @@ public class Analysizer {
     public Analysizer(String inputSrc,String out) throws IOException {
         tokenizer = new Tokenizer(inputSrc);
         tokenizer.TokenizerInit();
+        tokenizer.readFile.PrintAll();
         pos = 0;
         symbolTable.addLine();
         functionList.addFunction("_start");
@@ -123,6 +124,7 @@ public class Analysizer {
     {
         analyse_expr_3();
         boolean isAdding;
+        Token t=currentToken();
         while(currentToken().tokenType==TokenType.PLUS|| currentToken().tokenType==TokenType.MINUS
         )
         {
@@ -153,6 +155,7 @@ public class Analysizer {
     {
         analyse_expr_4();
         boolean isMulting;
+        Token token =currentToken();
         while(currentToken().tokenType==TokenType.MUL||
                 currentToken().tokenType==TokenType.DIV
         )
@@ -442,15 +445,18 @@ public class Analysizer {
         expect(TokenType.CONST_KW);
         Token token=expect(TokenType.IDENT);
         expect(TokenType.COLON);
-        VariableType type = analyse_type();
-        if(type==VariableType.VOID)
-            throw new Error("const item can't be defined as void,pos: "+currentToken().startPos.toString());
-        boolean global = symbolTable.symbol_table.size()==1;
-        Variable v = new Variable(token.value.toString(),true,global,false,type);
-        symbolTable.addOneVariable(v);
-        functionList.addVariable(v);
-        if(!global)
-            functionList.top().local_slot++;
+       VariableType type = analyse_type();
+       // 常量不能是 void
+       if(type==VariableType.VOID)
+           throw new Error("const item can't be defined as void,pos: "+currentToken().startPos.toString());
+       boolean global = symbolTable.symbol_table.size()==1;
+       Variable v = new Variable(token.value.toString(),true,global,false,type);
+       symbolTable.addOneVariable(v);
+       // 加入到functionlist 会定义变量的offset
+       functionList.addVariable(v);
+       if(!global)
+           functionList.top().local_slot++;
+       // 现在应该把这个const的地址放在栈顶上，push，store.64
         pushVarToStack(v);
         expect(TokenType.ASSIGN);
         analyseExpr();
@@ -501,7 +507,12 @@ public class Analysizer {
         {
             analyseFunction();
         }
-        expect(TokenType.EOF);
+        if(currentToken().tokenType==TokenType.EOF)
+        {
+            System.out.println("Syntax analyse passed.");
+        }
+        else throw new Error("error pos :"+currentToken().startPos.toString());
+        //_start call main
         functionList.function_list.get(0).instructions.add(new Instruction("call",
                 Instruction.get_byte_array_by_int(functionList.function_list.size()-1)));
         symbolTable.symbol_table.get(0).add(new Variable("_start",
@@ -752,6 +763,7 @@ public class Analysizer {
         stream.write(new byte[]{0x72,0x30,0x3B,0x3E,0x00,0x00,0x00,0x01});
         //全局变量数
         int global_num=symbolTable.GlobalVariables().size();
+        System.out.println("GlobalVariableNum: "+global_num);
         ArrayList<Byte> bytes = Instruction.get_byte_array_by_int(global_num);
         stream.write(toByteArray(bytes));
 
@@ -762,35 +774,60 @@ public class Analysizer {
             if(variable.variableType==VariableType.STRING)
             {
                 int isConst = symbolTable.GlobalVariables().get(i).isConst? 1:0;
+                System.out.println("isConst: "+ isConst);
                 stream.write(isConst);
+                System.out.println("length: "+variable.name.length());
+                System.out.println("value: "+variable.name);
                 stream.write(toByteArray(Instruction.get_byte_array_by_int(variable.name.length())));
                 for(int p=0;p<variable.name.length();p++)
                     stream.write((int)variable.name.charAt(p));
+                System.out.println(" ");
             }
             else
             {
+                System.out.println("isConst: "+symbolTable.GlobalVariables().get(i).isConst);
                 int isConst = symbolTable.GlobalVariables().get(i).isConst? 1:0;
                 stream.write(isConst);
+                System.out.println("length: 8");
+                System.out.println("value: 0");
                 stream.write(toByteArray(Instruction.get_byte_array_by_int(8)));
                 stream.write(toByteArray(Instruction.get_byte_array_by_long(0)));
+                System.out.println(" ");
             }
         }
+
+        // func_num
+        System.out.println("function_num: "+functionList.function_list.size());
         stream.write(toByteArray(Instruction.get_byte_array_by_int(functionList.function_list.size())));
+        System.out.println("");
+
+        //functions
         for(int i=0;i<functionList.function_list.size();i++)
         {
             Function f= functionList.function_list.get(i);
+            System.out.println("function_id: "+f.id);
             stream.write(toByteArray(Instruction.get_byte_array_by_int(f.id)));
+            System.out.println("return_slot: "+f.return_slot);
             stream.write(toByteArray(Instruction.get_byte_array_by_int(f.return_slot)));
+            System.out.println("param_slot: "+f.param_slot);
             stream.write(toByteArray(Instruction.get_byte_array_by_int(f.param_slot)));
+            System.out.println("local_slot: "+f.local_slot);
             stream.write(toByteArray(Instruction.get_byte_array_by_int(f.local_slot)));
+            System.out.println("Instruction_num: "+f.instructions.size());
             stream.write(toByteArray(Instruction.get_byte_array_by_int(f.instructions.size())));
             for(int j=0;j<f.instructions.size();j++)
             {
                 Instruction instruction = f.instructions.get(j);
+                System.out.print(j+" "+instruction.instruction_name);
                 stream.write(instruction.instruction_byte);
+                System.out.print(" ");
                 if(instruction.with_operands)
-                    stream.write(toByteArray(instruction.instruction_num));
+                {
+                    System.out.println(Instruction.get_num_by_byte_array(instruction.instruction_num));
+                        stream.write(toByteArray(instruction.instruction_num));
+                }else System.out.println(" ");
             }
+            System.out.println(" ");
 
         }
     }
@@ -805,6 +842,11 @@ public class Analysizer {
         return res;
     }
 
+    public static void main(String[] args) {
+        ArrayList<Byte> b = Instruction.get_byte_array_by_int(-19);
+
+        System.out.println((int)Instruction.get_num_by_byte_array(b));
+    }
     public void ReturnCheck()
     {
         int size = functionList.top().instructions.size();
@@ -820,10 +862,13 @@ public class Analysizer {
             {
                 trans.add(i);
                 int det = (int)Instruction.get_num_by_byte_array(instruction.instruction_num);
+                System.out.println(det);
                 int destination = i+1+det;
                 destinations.add(destination);
             }
         }
+        System.out.println(trans);
+        System.out.println(destinations);
         for(int i=0;i<trans.size();i++)
         {
             if(!inners.contains(trans.get(i)+1))
@@ -835,8 +880,9 @@ public class Analysizer {
             inners.add(destinations.get(i));//直接跳转的入口
         }
         Collections.sort(inners);
+        System.out.println(inners);
         if(inners.size()==1&&functionList.top().return_point==0)
-            throw new Error("error!");
+            throw new Error("");
         ArrayList<BasicBlock> BasicBlockList = new ArrayList<>();
         for(int i=0;i<inners.size();i++)
         {

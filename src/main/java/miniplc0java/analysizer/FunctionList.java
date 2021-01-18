@@ -32,7 +32,6 @@ public class FunctionList {
             variable.offset = top().localVariables.size();
             top().localVariables.add(variable);
         }
-        // printAll();
     }
 
     public void add_instruction(String name) {
