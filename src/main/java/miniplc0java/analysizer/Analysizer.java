@@ -31,6 +31,21 @@ public class Analysizer {
     {
         return pos+2<=tokenizer.TokenList.size()-1?tokenizer.TokenList.get(pos+2):null;
     }
+    public void pushVarToStack(Variable variable) {
+        if (variable.isGlobal) {
+            functionList.add_instruction("globa",Instruction.get_byte_array_by_int(variable.offset));
+            stack.push(SlotType.ADDR);
+        }
+        else if(variable.isParam)
+        {
+            functionList.add_instruction("arga",Instruction.get_byte_array_by_int(variable.offset));
+            stack.push(SlotType.ADDR);
+
+        }else {
+            functionList.add_instruction("loca",Instruction.get_byte_array_by_int(variable.offset));
+            stack.push(SlotType.ADDR);
+        }
+    }
     public  ArrayList<Integer> whileStartIndexList = new ArrayList<>();
     public Token expect(TokenType tt)
     {
@@ -283,19 +298,7 @@ public class Analysizer {
             else  // 引用符号表的参数，查询是否存在，并把他的地址放在栈上,load
             {
                 Variable variable = symbolTable.getVariableByName(currentToken().value.toString());
-                if (variable.isGlobal) {
-                    functionList.add_instruction("globa",Instruction.get_byte_array_by_int(variable.offset));
-                    stack.push(SlotType.ADDR);
-                }
-                else if(variable.isParam)
-                {
-                    functionList.add_instruction("arga",Instruction.get_byte_array_by_int(variable.offset));
-                    stack.push(SlotType.ADDR);
-        
-                }else {
-                    functionList.add_instruction("loca",Instruction.get_byte_array_by_int(variable.offset));
-                    stack.push(SlotType.ADDR);
-                }
+                pushVarToStack(variable);
                 if(nextToken().tokenType!=TokenType.ASSIGN)// 不是赋值语句
                 {
                     functionList.add_instruction("load.64");
@@ -450,19 +453,7 @@ public class Analysizer {
         functionList.addVariable(v);
         if(!global)
             functionList.top().local_slot++;
-        if (v.isGlobal) {
-            functionList.add_instruction("globa",Instruction.get_byte_array_by_int(v.offset));
-            stack.push(SlotType.ADDR);
-        }
-        else if(v.isParam)
-        {
-            functionList.add_instruction("arga",Instruction.get_byte_array_by_int(v.offset));
-            stack.push(SlotType.ADDR);
-
-        }else {
-            functionList.add_instruction("loca",Instruction.get_byte_array_by_int(v.offset));
-            stack.push(SlotType.ADDR);
-        }
+        pushVarToStack(variable);
         expect(TokenType.ASSIGN);
         analyseExpr();
         // 汇编和栈操作应该是同步的
@@ -487,19 +478,7 @@ public class Analysizer {
             functionList.top().local_slot++;
         if(currentToken().tokenType==TokenType.ASSIGN)
         {
-            if (v.isGlobal) {
-                functionList.add_instruction("globa",Instruction.get_byte_array_by_int(v.offset));
-                stack.push(SlotType.ADDR);
-            }
-            else if(v.isParam)
-            {
-                functionList.add_instruction("arga",Instruction.get_byte_array_by_int(v.offset));
-                stack.push(SlotType.ADDR);
-
-            }else {
-                functionList.add_instruction("loca",Instruction.get_byte_array_by_int(v.offset));
-                stack.push(SlotType.ADDR);
-            }
+            pushVarToStack(v);
             next();
             analyseExpr();
             // 汇编和栈操作应该是同步的
