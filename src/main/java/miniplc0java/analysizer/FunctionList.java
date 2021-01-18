@@ -35,18 +35,6 @@ public class FunctionList {
         // printAll();
     }
 
-    public void printAll() {
-        System.out.println("            ");
-        for (int i = 0; i < function_list.size(); i++) {
-            Function function = function_list.get(i);
-            System.out.println("functionid: " + i);
-            System.out.println("functionname: " + function.name);
-            System.out.println("function_param_num: " + function.paramVariables.size());
-            System.out.println("function_local_num: " + function.localVariables.size());
-        }
-        System.out.println("            ");
-    }
-
     public void add_instruction(String name) {
         top().instructions.add(new Instruction(name));
     }

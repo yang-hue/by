@@ -97,13 +97,6 @@ public class ReadFile {
         }
 
     }
-    public void PrintAll()
-    {
-        for(int i=0;i<lineBuffer.size();i++)
-        {
-            System.out.print(lineBuffer.get(i));
-        }
-    }
     public boolean isEOF()
     {
         return this.NowPos.row==lineBuffer.size()-1&&this.NowPos.col==NowStr.length()-1;
@@ -113,13 +106,6 @@ public class ReadFile {
 
         readFile.ReadInit();
         while(!readFile.isEOF())
-        {
-            System.out.print(readFile.GetNextNextChar());
-            //System.out.print(readFile.GetNowChar());
             readFile.GoNext();
-
-        }
-
-
     }
 }
