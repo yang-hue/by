@@ -2,7 +2,7 @@ package miniplc0java.tokenizer;
 import java.util.ArrayList;
 
 import miniplc0java.util.Caculate;
-import miniplc0java.util.CheckCharType;
+import miniplc0java.util.CheckType;
 import miniplc0java.util.Pos;
 
 public class Tokenizer {
@@ -21,11 +21,11 @@ public class Tokenizer {
             return new Token(TokenType.EOF, "", readFile.NowPos,readFile.NowPos);
         }
         skipSpaceCharacters();
-        if(CheckCharType.isAlpha(readFile.GetNowChar())||readFile.GetNowChar()=='_')
+        if(CheckType.isAlpha(readFile.GetNowChar())||readFile.GetNowChar()=='_')
         {
             return LexIdentOrKeyword();
         }
-        else if (CheckCharType.isInt(readFile.GetNowChar()))
+        else if (CheckType.isInt(readFile.GetNowChar()))
         {
             return LexIntOrDouble();
         }
@@ -37,7 +37,7 @@ public class Tokenizer {
         try{
             Pos startPos = readFile.NowPos;
             StringBuilder sb = new StringBuilder();
-            while(CheckCharType.isAlpha(readFile.GetNowChar())||CheckCharType.isInt(readFile.GetNowChar())||readFile.GetNowChar()=='_')
+            while(CheckType.isAlpha(readFile.GetNowChar())||CheckType.isInt(readFile.GetNowChar())||readFile.GetNowChar()=='_')
             {
                 sb.append(readFile.GetNowChar());
                 readFile.GoNext();
@@ -79,7 +79,7 @@ public class Tokenizer {
             Pos startPos = readFile.NowPos;
             Pos endPos;
             StringBuilder IntegralPart = new StringBuilder();
-            while(CheckCharType.isInt(readFile.GetNowChar()))
+            while(CheckType.isInt(readFile.GetNowChar()))
             {
                 IntegralPart.append(readFile.GetNowChar());
                 readFile.GoNext();
@@ -90,22 +90,22 @@ public class Tokenizer {
                     return new Token(TokenType.UINT_LITERAL,Long.valueOf(IntegralPart.toString()),startPos,endPos);
                 }
             else {
-                if(CheckCharType.isInt(readFile.GetNextChar()))
+                if(CheckType.isInt(readFile.GetNextChar()))
                 {
                     readFile.GoNext();
                     StringBuilder FractionalPart = new StringBuilder();
-                    while(CheckCharType.isInt(readFile.GetNowChar()))
+                    while(CheckType.isInt(readFile.GetNowChar()))
                     {
                         FractionalPart.append(readFile.GetNowChar());
                         readFile.GoNext();
                     }
                     if(readFile.GetNowChar()=='e'||readFile.GetNowChar()=='E')
                     {
-                        if(CheckCharType.isInt(readFile.GetNextChar()))// 1.56e45
+                        if(CheckType.isInt(readFile.GetNextChar()))// 1.56e45
                         {
                             readFile.GoNext();
                             StringBuilder ExponentPart = new StringBuilder();
-                            while(CheckCharType.isInt(readFile.GetNowChar()))
+                            while(CheckType.isInt(readFile.GetNowChar()))
                             {
                                 ExponentPart.append(readFile.GetNowChar());
                                 readFile.GoNext();
@@ -117,13 +117,13 @@ public class Tokenizer {
                         }
                         else if (readFile.GetNextChar()=='+'||readFile.GetNextChar()=='-')
                         {
-                            if(CheckCharType.isInt(readFile.GetNextNextChar()))
+                            if(CheckType.isInt(readFile.GetNextNextChar()))
                             {
                                 readFile.GoNext();
                                 StringBuilder ExponentPart = new StringBuilder();
                                 ExponentPart.append(readFile.GetNowChar());
                                 readFile.GoNext();
-                                while(CheckCharType.isInt(readFile.GetNowChar()))
+                                while(CheckType.isInt(readFile.GetNowChar()))
                                     {
                                         ExponentPart.append(readFile.GetNowChar());
                                         readFile.GoNext();
@@ -272,7 +272,7 @@ public class Tokenizer {
                     readFile.GoNext();
                     char getChar = readFile.GetNowChar();
                     StringBuilder sb = new StringBuilder();
-                    while (CheckCharType.isStringLiteralChar(getChar))
+                    while (CheckType.isStringLiteralChar(getChar))
                     {
                         if(getChar=='\\'&&(readFile.GetNextChar()=='n'||readFile.GetNextChar()=='r'||readFile.GetNextChar()=='t'
                                 ||readFile.GetNextChar()=='\''||readFile.GetNextChar()=='\"'||readFile.GetNextChar()=='\\'))
@@ -315,7 +315,7 @@ public class Tokenizer {
                     readFile.GoNext();
                     char getChar0 = readFile.GetNowChar();
                     long value = 0;
-                    if (CheckCharType.isCharLiteralChar(getChar0))
+                    if (CheckType.isCharLiteralChar(getChar0))
                     {
                         if(getChar0=='\\'&&(readFile.GetNextChar()=='n'||readFile.GetNextChar()=='r'||readFile.GetNextChar()=='t'
                                 ||readFile.GetNextChar()=='\''||readFile.GetNextChar()=='\"'||readFile.GetNextChar()=='\\'))
