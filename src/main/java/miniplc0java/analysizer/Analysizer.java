@@ -66,7 +66,6 @@ public class Analysizer {
     public Analysizer(String inputSrc,String out) throws IOException {
         tokenizer = new Tokenizer(inputSrc);
         tokenizer.TokenizerInit();
-        tokenizer.readFile.PrintAll();
         pos = 0;
         symbolTable.addLine();
         functionList.addFunction("_start");
