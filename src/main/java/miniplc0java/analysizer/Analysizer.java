@@ -323,7 +323,7 @@ public class Analysizer {
             functionList.add_instruction("push",Instruction.get_byte_array_by_long((long)currentToken().value));
             stack.push(SlotType.INT);
             FalseToJump = true;
-           next();
+            next();
         }
         else if(currentToken().tokenType==TokenType.DOUBLE_LITERAL)
         {
@@ -621,11 +621,53 @@ public class Analysizer {
         }
         else if(currentToken().tokenType==TokenType.WHILE_KW)
         {
-            analyse_while_stmt();
+            expect(TokenType.WHILE_KW);
+            int start_index = functionList.top().instructions.size();
+            whileStartIndexList.add(start_index);//记录while开始的地方 continue的时候直接跳到这里
+            analyseExpr();
+            int origin_index = functionList.top().instructions.size();
+            functionList.add_instruction(FalseToJump?"br.false":"br.true");
+            analyse_block_stmt();
+            int end_index  = functionList.top().instructions.size();//循环里的所有break跳到这里
+            for(int i=start_index;i<end_index;i++)
+            {
+                Instruction instruction= functionList.top().instructions.get(i);
+                if(instruction.instruction_name.equals("break"))
+                {
+                    instruction.with_operands=true;
+                    instruction.instruction_num = Instruction.get_byte_array_by_int(end_index-i);
+                    instruction.instruction_name="br";
+                }
+            }
+            whileStartIndexList.remove(whileStartIndexList.size()-1);
+            functionList.add_instruction("br");
+            functionList.top().instructions.get(origin_index).with_operands = true;
+            functionList.top().instructions.get(origin_index).instruction_num = Instruction.get_byte_array_by_int(end_index-origin_index);
+            functionList.top().instructions.get(end_index).with_operands = true;
+            functionList.top().instructions.get(end_index).instruction_num = Instruction.get_byte_array_by_int(start_index-end_index-1 );
         }
         else if(currentToken().tokenType==TokenType.RETURN_KW)
         {
-            analyse_return_stmt();
+            expect(TokenType.RETURN_KW);
+            if(currentToken().tokenType!=TokenType.SEMICOLON)
+            {
+                if(functionList.top().return_slot==0)
+                    throw new Error("this function should not have return value");
+                functionList.add_instruction("arga",Instruction.get_byte_array_by_int(0));
+                stack.push(SlotType.ADDR);
+
+                analyseExpr();
+
+                functionList.add_instruction("store.64");
+                stack.pop(functionList.top().type);
+                stack.pop(SlotType.ADDR);
+            }else// return ;
+                if(functionList.top().return_slot!=0)
+                throw new Error("this function should have return value");
+
+            functionList.add_instruction("ret");
+            expect(TokenType.SEMICOLON);
+            functionList.top().return_point+=1;
         }
         else if(currentToken().tokenType==TokenType.L_BRACE)
         {
@@ -693,56 +735,6 @@ public class Analysizer {
                 return functionList.top().instructions.size();
             }
         }
-    }
-    public void analyse_while_stmt()
-    {
-        expect(TokenType.WHILE_KW);
-        int start_index = functionList.top().instructions.size();
-        whileStartIndexList.add(start_index);//记录while开始的地方 continue的时候直接跳到这里
-        analyseExpr();
-        int origin_index = functionList.top().instructions.size();
-        functionList.add_instruction(FalseToJump?"br.false":"br.true");
-        analyse_block_stmt();
-        int end_index  = functionList.top().instructions.size();//循环里的所有break跳到这里
-        for(int i=start_index;i<end_index;i++)
-        {
-            Instruction instruction= functionList.top().instructions.get(i);
-            if(instruction.instruction_name.equals("break"))
-            {
-                instruction.with_operands=true;
-                instruction.instruction_num = Instruction.get_byte_array_by_int(end_index-i);
-                instruction.instruction_name="br";
-            }
-        }
-        whileStartIndexList.remove(whileStartIndexList.size()-1);
-        functionList.add_instruction("br");
-        functionList.top().instructions.get(origin_index).with_operands = true;
-        functionList.top().instructions.get(origin_index).instruction_num = Instruction.get_byte_array_by_int(end_index-origin_index);
-        functionList.top().instructions.get(end_index).with_operands = true;
-        functionList.top().instructions.get(end_index).instruction_num = Instruction.get_byte_array_by_int(start_index-end_index-1 );
-    }
-    public void analyse_return_stmt()
-    {
-        expect(TokenType.RETURN_KW);
-        if(currentToken().tokenType!=TokenType.SEMICOLON)
-        {
-            if(functionList.top().return_slot==0)
-                throw new Error("this function should not have return value");
-            functionList.add_instruction("arga",Instruction.get_byte_array_by_int(0));
-            stack.push(SlotType.ADDR);
-
-            analyseExpr();
-
-            functionList.add_instruction("store.64");
-            stack.pop(functionList.top().type);
-            stack.pop(SlotType.ADDR);
-        }else// return ;
-            if(functionList.top().return_slot!=0)
-            throw new Error("this function should have return value");
-
-        functionList.add_instruction("ret");
-        expect(TokenType.SEMICOLON);
-        functionList.top().return_point+=1;
     }
     public void analyse_block_stmt()
     {
